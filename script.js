@@ -19,45 +19,109 @@ let completedTasks = 0;
 let flatpickrInstance;
 
 // Initialization
-initializeFlatpickr();
-loadTasks();
-if (localStorage.getItem('darkMode') === 'true') {
-    toggleDarkMode();
-}
+document.addEventListener('DOMContentLoaded', () => {
+    initializeFlatpickr();
+    loadTasks();
+    if (localStorage.getItem('darkMode') === 'true') {
+        toggleDarkMode();
+    }
+});
 
 // Event Listeners
 addTaskBtn.addEventListener('click', addTask);
 clearCompletedBtn.addEventListener('click', clearCompletedTasks);
 darkModeToggle.addEventListener('click', toggleDarkMode);
 sortSelect.addEventListener('change', sortTasks);
-document.addEventListener('DOMContentLoaded', loadTasks);
 
 // Check for overdue tasks every minute
 setInterval(checkOverdueTasks, 60000);
 
-// Functions
+// Core Functions
+function addTask() {
+    const text = taskInput.value.trim();
+    const category = categorySelect.value;
+    const dueDate = flatpickrInstance.selectedDates[0];
+    const priority = prioritySelect.value;
+
+    if (text) {
+        const newTask = { 
+            id: Date.now(),
+            text, 
+            category, 
+            dueDate, 
+            priority, 
+            completed: false 
+        };
+        tasks.push(newTask);
+        renderTask(newTask);
+        
+        resetInputFields();
+        updateStats();
+        saveTasks();
+        sortTasks();
+    }
+}
+
+function toggleComplete(task, taskElement) {
+    task.completed = !task.completed;
+    updateTaskElement(task, taskElement);
+    updateStats();
+    saveTasks();
+}
+
+function deleteTask(task, taskElement) {
+    taskElement.classList.add('removing');
+    setTimeout(() => {
+        const index = tasks.findIndex(t => t.id === task.id);
+        if (index > -1) {
+            tasks.splice(index, 1);
+            taskElement.remove();
+            updateStats();
+            saveTasks();
+        }
+    }, 300);
+}
+
+// Helper Functions
 function updateStats() {
+    totalTasks = tasks.length;
+    completedTasks = tasks.filter(task => task.completed).length;
     totalTasksSpan.textContent = totalTasks;
     completedTasksSpan.textContent = completedTasks;
     const progress = totalTasks ? (completedTasks / totalTasks) * 100 : 0;
     progressBar.style.width = `${progress}%`;
 }
 
-function triggerCelebration() {
-    confetti({
-        particleCount: 100,
-        spread: 70,
-        origin: { y: 0.6 },
-        zIndex: 1000
-    });
+function saveTasks() {
+    localStorage.setItem('tasks', JSON.stringify(tasks));
 }
 
-function initializeFlatpickr() {
-    flatpickrInstance = flatpickr("#dueDateInput", {
-        enableTime: true,
-        dateFormat: "Y-m-d H:i",
-        minDate: "today"
-    });
+function loadTasks() {
+    taskList.innerHTML = '';
+    tasks.forEach(renderTask);
+    updateStats();
+}
+
+function renderTask(task) {
+    const taskElement = createTaskElement(task);
+    taskList.appendChild(taskElement);
+    setTimeout(() => {
+        taskElement.style.opacity = '1';
+        taskElement.style.transform = 'translateY(0)';
+    }, 10);
+}
+
+function clearCompletedTasks() {
+    tasks = tasks.filter(task => !task.completed);
+    loadTasks();
+    saveTasks();
+}
+
+function resetInputFields() {
+    taskInput.value = '';
+    categorySelect.value = 'personal';
+    flatpickrInstance.clear();
+    prioritySelect.value = 'low';
 }
 
 function createTaskElement(task) {
@@ -105,58 +169,14 @@ function formatDate(dateString) {
     return new Date(dateString).toLocaleString(undefined, options);
 }
 
-function addTask() {
-    const text = taskInput.value.trim();
-    const category = categorySelect.value;
-    const dueDate = flatpickrInstance.selectedDates[0];
-    const priority = prioritySelect.value;
-
-    if (text) {
-        const newTask = { 
-            id: Date.now(),
-            text, 
-            category, 
-            dueDate, 
-            priority, 
-            completed: false 
-        };
-        tasks.push(newTask);
-        const taskElement = createTaskElement(newTask);
-        taskList.appendChild(taskElement);
-        
-        setTimeout(() => {
-            taskElement.style.opacity = '1';
-            taskElement.style.transform = 'translateY(0)';
-        }, 10);
-        
-        taskInput.value = '';
-        flatpickrInstance.clear();
-        totalTasks++;
-        updateStats();
-        saveTasks();
-        sortTasks();
-    }
-}
-
-function toggleComplete(task, taskElement) {
-    task.completed = !task.completed;
-    taskElement.classList.toggle('completed');
+function updateTaskElement(task, taskElement) {
+    taskElement.classList.toggle('completed', task.completed);
     const statusSpan = taskElement.querySelector('.status');
-    const completeBtn = taskElement.querySelector('.complete-btn');
-    
     statusSpan.textContent = task.completed ? 'Completed' : 'Pending';
     
-    animateCompleteButton(completeBtn);
-    
     if (task.completed) {
-        completedTasks++;
         triggerCelebration();
-    } else {
-        completedTasks--;
     }
-    
-    updateStats();
-    saveTasks();
     
     if (!task.completed && task.dueDate && new Date(task.dueDate) < new Date()) {
         taskElement.classList.add('overdue');
@@ -165,63 +185,21 @@ function toggleComplete(task, taskElement) {
     }
 }
 
-function animateCompleteButton(button) {
-    button.style.transform = 'scale(1)';
-    button.style.transition = 'transform 0.3s ease-in-out';
-    
-    setTimeout(() => {
-        button.style.transform = 'scale(1.2)';
-        setTimeout(() => {
-            button.style.transform = 'scale(1)';
-        }, 150);
-    }, 0);
+function triggerCelebration() {
+    confetti({
+        particleCount: 100,
+        spread: 70,
+        origin: { y: 0.6 },
+        zIndex: 1000
+    });
 }
 
-function deleteTask(task, taskElement) {
-    taskElement.classList.add('removing');
-    setTimeout(() => {
-        const index = tasks.findIndex(t => t.id === task.id);
-        if (index > -1) {
-            tasks.splice(index, 1);
-            taskElement.remove();
-            totalTasks--;
-            if (task.completed) completedTasks--;
-            updateStats();
-            saveTasks();
-        }
-    }, 300);
-}
-
-function clearCompletedTasks() {
-    tasks = tasks.filter(task => !task.completed);
-    document.querySelectorAll('.task-item.completed').forEach(element => element.remove());
-    totalTasks = tasks.length;
-    completedTasks = 0;
-    updateStats();
-    saveTasks();
-}
-
-function saveTasks() {
-    localStorage.setItem('tasks', JSON.stringify(tasks));
-}
-
-function loadTasks() {
-    const storedTasks = localStorage.getItem('tasks');
-    if (storedTasks) {
-        tasks = JSON.parse(storedTasks);
-        taskList.innerHTML = '';
-        tasks.forEach(task => {
-            const taskElement = createTaskElement(task);
-            taskList.appendChild(taskElement);
-            setTimeout(() => {
-                taskElement.style.opacity = '1';
-                taskElement.style.transform = 'translateY(0)';
-            }, 50 * taskList.children.length);
-        });
-        totalTasks = tasks.length;
-        completedTasks = tasks.filter(task => task.completed).length;
-        updateStats();
-    }
+function initializeFlatpickr() {
+    flatpickrInstance = flatpickr("#dueDateInput", {
+        enableTime: true,
+        dateFormat: "Y-m-d H:i",
+        minDate: "today"
+    });
 }
 
 function toggleDarkMode() {
@@ -249,12 +227,7 @@ function sortTasks() {
     });
     
     taskList.innerHTML = '';
-    tasks.forEach(task => {
-        const taskElement = createTaskElement(task);
-        taskList.appendChild(taskElement);
-        taskElement.style.opacity = '1';
-        taskElement.style.transform = 'translateY(0)';
-    });
+    tasks.forEach(renderTask);
 }
 
 function checkOverdueTasks() {
@@ -271,3 +244,5 @@ function checkOverdueTasks() {
         }
     });
 }
+
+

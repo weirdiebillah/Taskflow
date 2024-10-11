@@ -17,7 +17,7 @@ body {
     font-family: 'Google Sans', 'Roboto', sans-serif;
     margin: 0;
     padding: 0;
-    background-color: #f1f3f4;
+    background-color: var(--secondary-color);
     color: var(--text-color);
     transition: background-color 0.5s, color 0.5s;
 }
@@ -163,34 +163,18 @@ button:hover {
 }
 
 /* Task Details */
-.task-item .category {
-    font-size: 0.8rem;
-    padding: 0.2rem 0.5rem;
-    border-radius: 12px;
-    background-color: var(--secondary-color);
-}
-
-.task-item .estimate {
-    font-size: 0.8rem;
-    color: var(--completed-color);
-}
-
-.task-item .due-date {
-    font-size: 0.8rem;
-    color: var(--completed-color);
-}
-
-.task-item.overdue .due-date {
-    color: var(--delete-color);
-}
-
+.task-item .category,
+.task-item .estimate,
+.task-item .due-date,
 .task-item .status {
     font-size: 0.8rem;
     padding: 0.2rem 0.5rem;
     border-radius: 12px;
     background-color: var(--secondary-color);
-    margin-left: 0.5rem;
-    transition: background-color 0.3s, color 0.3s;
+}
+
+.task-item.overdue .due-date {
+    color: var(--delete-color);
 }
 
 .task-item.completed .status {
@@ -265,10 +249,6 @@ button:hover {
     color: #9aa0a6;
 }
 
-.dark-mode .task-item .estimate {
-    color: #bdc1c6;
-}
-
 #darkModeToggle {
     background: none;
     color: var(--text-color);
@@ -282,25 +262,15 @@ button:hover {
 
 /* Animations */
 @keyframes completeTask {
-    0% {
+
+    0%,
+    100% {
         transform: scale(1);
     }
 
     50% {
         transform: scale(1.2);
     }
-
-    100% {
-        transform: scale(1);
-    }
-}
-
-.task-actions .complete-btn {
-    transition: color 0.3s, transform 0.2s;
-}
-
-.task-actions .complete-btn[class*="animate-"] {
-    animation: completeTask 0.3s ease-in-out;
 }
 
 @keyframes shake {
@@ -317,6 +287,10 @@ button:hover {
     75% {
         transform: translateX(5px);
     }
+}
+
+.task-actions .complete-btn[class*="animate-"] {
+    animation: completeTask 0.3s ease-in-out;
 }
 
 .task-item.overdue {
